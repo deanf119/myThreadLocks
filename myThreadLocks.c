@@ -5,6 +5,7 @@
  * 1) Dean Fernandes
  *      301274908
  *      deanf@sfu.ca
+ * 
  * 2) Sheel Soneji
  *      301295318
  *      ssoneji@sfu.ca
@@ -25,7 +26,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#define MAX_THREADS 200
+#define MAX_THREADS 100
 bool all_threads_are_created = false;
 pthread_mutex_t lock; 
 int threadCount = 0;
@@ -37,10 +38,11 @@ bool testLockArray[MAX_THREADS];
 /**
  * Tasks:
  * 
- * Launch 1000 threads      -
- * Pthread lock             -
- * Boolean Array Lock       -
+ * Launch 1000 threads      -   done
+ * Pthread lock             -   done
+ * Boolean Array Lock       -   done
  * Ticket Lock              -
+ * Add Timer                -   
  * 
  * 
 */
@@ -157,7 +159,7 @@ void mythread_launch_arrayLock(){
     }
 
     //initialize the array
-    testLockArray[threadCount] = true;
+    testLockArray[0] = true;
 
     //all threads created
     all_threads_are_created = true;
@@ -172,16 +174,16 @@ void mythread_launch_arrayLock(){
 void* arrayLock_test(void* arg){
     
     int temp = *((int*)arg);
-    printf("Reach before and %d\n",threadCount);
 
-
-    while ((threadCount < MAX_THREADS) && (all_threads_are_created== true)){
+    while (1){
         
-        printf("Reach here and %d\n",temp);
-        while(testLockArray[temp] == false){}
-        //CS
-        printf("The number of threads in The CS is %d \n",threadCount+1);
-        testLockArray[threadCount++]=true;
+        if(threadCount < MAX_THREADS && all_threads_are_created == true){
+            while(testLockArray[temp] == false){}
+            //CS
+            printf("The number of threads in The CS is %d \n",++threadCount);
+            testLockArray[threadCount]=true;
+            break;
+        }
 
     }    
 }
