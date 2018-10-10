@@ -19,7 +19,7 @@
  * Pthread lock             -   done
  * Boolean Array Lock       -   done
  * Ticket Lock              -   done
- * Add Timer                -   
+ * Add Timer                -   done
  * 
  * 
 */
@@ -36,11 +36,30 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+
 #define MAX_THREADS 1000
 bool all_threads_are_created = false;
 pthread_mutex_t lock; 
 int threadCount = 0;
 bool testLockArray[MAX_THREADS];
+long double startTime_method1;
+long double startTime_method2;
+long double startTime_method3;
+
+// Time Specific----------------------------------------------------BEGIN
+
+/**
+ * Function: currentTime
+ * Arguments: Returns the time in nanoseconds
+*/
+long double currentTime(){
+    struct timespec cTime;
+    clock_gettime (CLOCK_REALTIME, &cTime);
+    return (cTime.tv_nsec + (cTime.tv_sec * 1000000000.0));
+}
+
+// Time Specific----------------------------------------------------END
+
 
 // Method 3 Specific----------------------------------------------------BEGIN
 
@@ -57,16 +76,29 @@ typedef struct{
     int turn;
 } lock_t;
 
+/**
+ * Function: lock_init
+ * Arguments: initializes the lock passed as reference to 0
+*/
 void lock_init(lock_t *tlock){
     tlock->ticket = 0;
     tlock->turn = 0;
 }
 
+/**
+ * Function: lock_acquire
+ * Arguments: aquires the lock passed down by refference,
+ *      if busy, spin
+*/
 void lock_acquire(lock_t *tlock){
     int myturn = __sync_fetch_and_add(&tlock->ticket,1);
     while (tlock->turn != myturn); //spin
 }
 
+/**
+ * Function: lock_release
+ * Arguments: releases lock, gives turn to next person
+*/
 void lock_release(lock_t *tlock){
     tlock->turn += 1;
 }
@@ -119,7 +151,10 @@ void method3(){
 }
 
 
-
+/**
+ * Function: mythread_launch_pthreadLock
+ * Arguments: create all threads
+*/
 void mythread_launch_pthreadLock(){
 
     pthread_t myThread_ID [MAX_THREADS]; //array for threads
@@ -139,6 +174,8 @@ void mythread_launch_pthreadLock(){
         pthread_create(&myThread_ID[i], &attr, pthreadLock_test, &currThread_Num[i]);
     }
 
+
+
     //all threads created
     all_threads_are_created = true;
 
@@ -149,21 +186,35 @@ void mythread_launch_pthreadLock(){
 
 }
 
-
+/**
+ * Function: pthreadLock_test
+ * Arguments: test the lock given the tid
+*/
 void* pthreadLock_test(void* arg){
 
-    while (threadCount < MAX_THREADS && all_threads_are_created== true){
-
-        pthread_mutex_lock(&lock);
-        //CS
-        threadCount++;
-        printf("The number of threads in The CS is %d \n",threadCount);
-        pthread_mutex_unlock(&lock);
+    if(all_threads_are_created== true){
+        //printf("\n");
+        //start timer
+        startTime_method1 = currentTime();        
         
+        while (threadCount < MAX_THREADS ){
+
+            pthread_mutex_lock(&lock);
+            //CS
+            long double finishTime = currentTime();
+            long double tTime= (finishTime - startTime_method1);
+            threadCount++;
+            printf("%d      %Lf \n",threadCount, tTime);
+            pthread_mutex_unlock(&lock); 
+        }
     }
 }
 
 
+/**
+ * Function: mythread_launch_arrayLock
+ * Arguments: create all threads
+*/
 void mythread_launch_arrayLock(){
 
     pthread_t myThread_ID [MAX_THREADS]; //array for threads
@@ -200,6 +251,10 @@ void mythread_launch_arrayLock(){
 
 }
 
+/**
+ * Function: arrayLock_test
+ * Arguments: test the lock given the tid
+*/
 void* arrayLock_test(void* arg){
     
     int temp = *((int*)arg);
@@ -207,9 +262,16 @@ void* arrayLock_test(void* arg){
     while (1){
         
         if(threadCount < MAX_THREADS && all_threads_are_created == true){
+
+            //printf("\n");
+            //start timer
+            startTime_method2 = currentTime();
+
             while(testLockArray[temp] == false){}
             //CS
-            printf("The number of threads in The CS is %d \n",++threadCount);
+            long double finishTime = currentTime();
+            long double tTime= (finishTime - startTime_method2);
+            printf("%d      %Lf \n",++threadCount, tTime);
             testLockArray[threadCount]=true;
             break;
         }
@@ -217,7 +279,10 @@ void* arrayLock_test(void* arg){
     }    
 }
 
-
+/**
+ * Function: mythread_launch_ticketLock
+ * Arguments: create all threads
+*/
 void mythread_launch_ticketLock(){
 
     pthread_t myThread_ID [MAX_THREADS]; //array for threads
@@ -250,16 +315,29 @@ void mythread_launch_ticketLock(){
 
 }
 
+/**
+ * Function: ticketLock_test
+ * Arguments: test the lock given the tid
+*/
 void* ticketLock_test(void* arg){
 
-    while (threadCount < MAX_THREADS && all_threads_are_created== true){
+    if(all_threads_are_created== true){
 
-        lock_acquire(&myTicketLock);
-        //CS
-        threadCount++;
-        printf("The number of threads in The CS is %d \n",threadCount);
-        lock_release(&myTicketLock);
+        //printf("\n");
+        //start timer
+        startTime_method3 = currentTime();
 
+        while (threadCount < MAX_THREADS){
+
+            lock_acquire(&myTicketLock);
+            //CS
+            long double finishTime = currentTime();
+            long double tTime= (finishTime - startTime_method3);
+            threadCount++;
+            printf("%d      %Lf \n",threadCount, tTime);
+            lock_release(&myTicketLock);
+
+        }
     }
 
 }
